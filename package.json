@@ -1,0 +1,20 @@
+{
+  "name": "pi-memory-os",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Pi extension bridging TypeScript agents to Memory OS (Qdrant + Redis/ARQ + embeddings)",
+  "type": "module",
+  "dependencies": {
+    "ioredis": "^5.6.0",
+    "@msgpack/msgpack": "^3.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0",
+    "@types/node": "^22.0.0",
+    "@earendil-works/pi-coding-agent": "^0.79.0",
+    "@sinclair/typebox": "^0.34.0"
+  },
+  "pi": {
+    "extensions": ["./src/index.ts"]
+  }
+}
