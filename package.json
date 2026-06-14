@@ -9,6 +9,7 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit --skipLibCheck",
     "verify": "npm run typecheck && npm test",
+    "postinstall": "cd node_modules/pi-fabric && npm install --no-fund --no-audit --silent && npm run build 2>/dev/null || true",
     "smoke:health": "node scripts/smoke-health.mjs",
     "smoke:search": "node scripts/smoke-search.mjs",
     "smoke:arq": "node scripts/smoke-arq-consume.mjs",
