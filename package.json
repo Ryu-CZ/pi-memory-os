@@ -2,19 +2,32 @@
   "name": "pi-memory-os",
   "version": "0.1.0",
   "private": false,
-  "description": "Pi extension bridging TypeScript agents to Memory OS (Qdrant + Redis/ARQ + embeddings)",
+  "description": "Pi lifecycle adapter bridging TypeScript agents to Memory OS (Qdrant + Redis/ARQ + embeddings) — hooks only, no default tools",
   "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit --skipLibCheck",
+    "verify": "npm run typecheck && npm test",
+    "smoke:health": "node scripts/smoke-health.mjs",
+    "smoke:search": "node scripts/smoke-search.mjs",
+    "smoke:arq": "node scripts/smoke-arq-consume.mjs",
+    "smoke:ingest": "node scripts/smoke-ingest.mjs",
+    "smoke:pi": "node scripts/smoke-pi-lifecycle.mjs"
+  },
   "dependencies": {
     "ioredis": "^5.6.0",
-    "@msgpack/msgpack": "^3.1.0"
+    "pi-fabric": "file:../pi-fabric"
   },
   "devDependencies": {
-    "typescript": "^5.8.0",
-    "@types/node": "^22.0.0",
     "@earendil-works/pi-coding-agent": "^0.79.0",
-    "@sinclair/typebox": "^0.34.0"
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.2.6"
   },
   "pi": {
-    "extensions": ["./src/index.ts"]
+    "extensions": [
+      "./src/index.ts"
+    ]
   }
 }
