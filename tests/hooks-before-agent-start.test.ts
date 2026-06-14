@@ -21,6 +21,10 @@ function makeDeps(configOverrides?: Partial<MemoryOSConfig>, searchFn?: (query: 
       source: "test",
       minScore: 0.35,
       maxResults: 3,
+      hermesStateDbPath: null,
+      hermesMemoryStoreDbPath: null,
+      sparseDockerDir: null,
+      sparsePython: "python3",
       injectionEnabled: true,
       captureEnabled: true,
       ...configOverrides,
@@ -103,7 +107,7 @@ describe("handleBeforeAgentStart", () => {
     const deps = makeDeps({}, searchFn);
     const state = makeState();
     await handleBeforeAgentStart({ prompt: "tell me about config" }, state, deps);
-    expect(state.injectedIds.has("abc")).toBe(true);
+    expect(state.injectedIds.has("test:abc")).toBe(true);
   });
 
   it("does not throw when retrieval fails", async () => {

@@ -13,7 +13,8 @@
     "smoke:search": "node scripts/smoke-search.mjs",
     "smoke:arq": "node scripts/smoke-arq-consume.mjs",
     "smoke:ingest": "node scripts/smoke-ingest.mjs",
-    "smoke:pi": "node scripts/smoke-pi-lifecycle.mjs"
+    "smoke:pi": "node scripts/smoke-pi-lifecycle.mjs",
+    "smoke:lifecycle-context": "npm run build && node scripts/smoke-lifecycle-context.mjs"
   },
   "dependencies": {
     "ioredis": "^5.6.0",

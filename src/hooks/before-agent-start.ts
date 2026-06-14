@@ -1,4 +1,4 @@
-import { filterInjectableHits, shouldSkipMemoryQuery } from "../policy/retrieval-policy.js";
+import { filterInjectableHits, injectionDedupeKey, shouldSkipMemoryQuery } from "../policy/retrieval-policy.js";
 import { GROUND_TRUTH_INSTRUCTION } from "../policy/ground-truth.js";
 import { formatMemoryContext } from "../format/memory-context.js";
 import type { MemoryHit, MemoryOSConfig, SearchResult } from "../types.js";
@@ -36,7 +36,7 @@ export async function handleBeforeAgentStart(
     if (!hits.length) return;
 
     for (const hit of hits) {
-      state.injectedIds.add(hit.id);
+      state.injectedIds.add(injectionDedupeKey(hit));
     }
 
     const context = formatMemoryContext(hits);

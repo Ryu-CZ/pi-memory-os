@@ -10,6 +10,10 @@ export interface MemoryOSConfig {
   source: string;
   minScore: number;
   maxResults: number;
+  hermesStateDbPath: string | null;
+  hermesMemoryStoreDbPath: string | null;
+  sparseDockerDir: string | null;
+  sparsePython: string;
   injectionEnabled: boolean;
   captureEnabled: boolean;
 }

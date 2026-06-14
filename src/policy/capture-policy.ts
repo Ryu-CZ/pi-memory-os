@@ -54,6 +54,6 @@ export function buildCaptureCandidate(text: string, source: string): CaptureCand
     ok: true,
     text: redacted,
     source,
-    tags: ["auto", "pi", "agent_end"],
+    tags: ["auto", "pi", "agent_end", "memory-os-capture", "source_tool:pi-memory-os"],
   };
 }

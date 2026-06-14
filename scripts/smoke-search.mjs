@@ -5,7 +5,7 @@
 
 import { loadConfig } from "../dist/config.js";
 import { embedText } from "../dist/memory-os/embedding-client.js";
-import { searchQdrant } from "../dist/memory-os/qdrant-client.js";
+import { queryQdrant } from "../dist/memory-os/qdrant-client.js";
 
 async function main() {
   const query = process.argv[2];
@@ -39,7 +39,7 @@ async function main() {
   // Step 2: Search Qdrant
   let hits;
   try {
-    hits = await searchQdrant(config.qdrantUrl, config.collection, vector, config.maxResults);
+    hits = await queryQdrant(config.qdrantUrl, config.collection, vector, config.maxResults);
   } catch (err) {
     console.error(`Search failed: ${err.message}`);
     process.exit(1);

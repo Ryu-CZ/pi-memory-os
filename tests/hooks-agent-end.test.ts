@@ -20,6 +20,10 @@ function makeDeps(
       source: "test",
       minScore: 0.35,
       maxResults: 3,
+      hermesStateDbPath: null,
+      hermesMemoryStoreDbPath: null,
+      sparseDockerDir: null,
+      sparsePython: "python3",
       injectionEnabled: true,
       captureEnabled: true,
       ...configOverrides,
@@ -73,7 +77,7 @@ describe("handleAgentEnd", () => {
     expect(storeFn).toHaveBeenCalledWith(
       expect.stringContaining("fixed the bug"),
       "test",
-      expect.arrayContaining(["auto", "pi", "agent_end"]),
+      expect.arrayContaining(["auto", "pi", "agent_end", "memory-os-capture", "source_tool:pi-memory-os"]),
     );
   });
 

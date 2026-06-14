@@ -24,6 +24,10 @@ const defaultDeps: HealthDeps = {
       source: "",
       minScore: 0,
       maxResults: 0,
+      hermesStateDbPath: null,
+      hermesMemoryStoreDbPath: null,
+      sparseDockerDir: null,
+      sparsePython: "python3",
       injectionEnabled: false,
       captureEnabled: false,
     });

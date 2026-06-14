@@ -10,6 +10,7 @@ describe("smoke scripts", () => {
       "scripts/smoke-arq-consume.mjs",
       "scripts/smoke-ingest.mjs",
       "scripts/smoke-pi-lifecycle.mjs",
+      "scripts/smoke-lifecycle-context.mjs",
     ]) {
       expect(existsSync(resolve(script))).toBe(true);
     }

@@ -36,6 +36,8 @@ describe("buildCaptureCandidate", () => {
     expect(result.tags).toContain("auto");
     expect(result.tags).toContain("pi");
     expect(result.tags).toContain("agent_end");
+    expect(result.tags).toContain("memory-os-capture");
+    expect(result.tags).toContain("source_tool:pi-memory-os");
     expect(result.source).toBe("agent_end");
   });
 

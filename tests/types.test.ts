@@ -28,6 +28,10 @@ describe("types", () => {
       source: "pi-coding-agent",
       minScore: 0.35,
       maxResults: 3,
+      hermesStateDbPath: null,
+      hermesMemoryStoreDbPath: null,
+      sparseDockerDir: null,
+      sparsePython: "python3",
       injectionEnabled: true,
       captureEnabled: true,
     };

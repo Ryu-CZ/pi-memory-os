@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { probeQdrant, searchQdrant } from "../src/memory-os/qdrant-client.js";
+import { probeQdrant, queryQdrant, searchQdrant } from "../src/memory-os/qdrant-client.js";
 
 const originalFetch = globalThis.fetch;
 
@@ -46,6 +46,89 @@ describe("probeQdrant", () => {
     const result = await probeQdrant("http://localhost:6333", "knowledge_base");
 
     expect(result.ok).toBe(false);
+  });
+});
+
+describe("queryQdrant", () => {
+  it("POSTs to /collections/<collection>/points/query with named dense vector", async () => {
+    globalThis.fetch = vi.fn(async () =>
+      new Response(JSON.stringify({ result: { points: [] } }), { status: 200 }),
+    ) as typeof fetch;
+
+    await queryQdrant("http://localhost:6333", "knowledge_base", [1, 2, 3], 5);
+
+    const call = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(call[0]).toBe("http://localhost:6333/collections/knowledge_base/points/query");
+    expect(call[1].method).toBe("POST");
+    const body = JSON.parse(call[1].body as string);
+    expect(body.query).toEqual([1, 2, 3]);
+    expect(body.using).toBe("dense");
+    expect(body.limit).toBe(5);
+    expect(body.with_payload).toBe(true);
+    expect(body.with_vector).toBe(false);
+  });
+
+  it("POSTs hybrid dense+sparse RRF query when sparse vector is available", async () => {
+    globalThis.fetch = vi.fn(async () =>
+      new Response(JSON.stringify({ result: { points: [] } }), { status: 200 }),
+    ) as typeof fetch;
+
+    await queryQdrant("http://localhost:6333", "knowledge_base", [1, 2, 3], 5, 5000, { indices: [10, 20], values: [0.3, 0.7] });
+
+    const call = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    const body = JSON.parse(call[1].body as string);
+    expect(body.prefetch).toEqual([
+      { query: [1, 2, 3], using: "dense", limit: 15 },
+      { query: { indices: [10, 20], values: [0.3, 0.7] }, using: "sparse", limit: 15 },
+    ]);
+    expect(body.query).toEqual({ fusion: "rrf" });
+    expect(body.limit).toBe(5);
+    expect(body.with_payload).toBe(true);
+    expect(body.with_vector).toBe(false);
+  });
+
+  it("maps /points/query response envelopes", async () => {
+    globalThis.fetch = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          result: {
+            points: [
+              {
+                id: "hit1",
+                score: 0.85,
+                payload: { text: "Important memory.", source: "pi", tags: [], created_at: "now" },
+              },
+            ],
+          },
+        }),
+        { status: 200 },
+      ),
+    ) as typeof fetch;
+
+    const hits = await queryQdrant("http://localhost:6333", "knowledge_base", [1, 2, 3], 10);
+
+    expect(hits).toHaveLength(1);
+    expect(hits[0]).toMatchObject({ id: "hit1", score: 0.85, text: "Important memory." });
+  });
+
+  it("falls back to /points/search when /points/query is unavailable", async () => {
+    globalThis.fetch = vi.fn(async (input) => {
+      if (String(input).endsWith("/points/query")) {
+        return new Response("Not Found", { status: 404 });
+      }
+      return new Response(
+        JSON.stringify({ result: [{ id: "fallback", score: 0.7, payload: { text: "Fallback memory." } }] }),
+        { status: 200 },
+      );
+    }) as typeof fetch;
+
+    const hits = await queryQdrant("http://localhost:6333", "knowledge_base", [1, 2, 3], 10);
+
+    expect((globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls.map((call) => call[0])).toEqual([
+      "http://localhost:6333/collections/knowledge_base/points/query",
+      "http://localhost:6333/collections/knowledge_base/points/search",
+    ]);
+    expect(hits[0]).toMatchObject({ id: "fallback", text: "Fallback memory." });
   });
 });
 

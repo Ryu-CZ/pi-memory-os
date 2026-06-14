@@ -26,9 +26,9 @@ Memory should be ambient. The agent should not need to remember to call a memory
 
 | Pi hook | Memory OS behavior |
 |---|---|
-| `session_start` | Probe local Memory OS services and set Pi status |
-| `before_agent_start` | Retrieve relevant memory, inject context, append Ground Truth authority instruction |
-| `agent_end` | Capture durable assistant outcomes and enqueue them into the existing Memory OS ingestion path |
+| `session_start` | Probe local Memory OS services, set Pi status, and eventually inject/prepare Fabric brief/pending context from `pi-fabric` |
+| `before_agent_start` | Retrieve relevant Fabric/Qdrant/session/fact memory, inject context, append Ground Truth authority instruction |
+| `agent_end` | Capture durable assistant outcomes and enqueue semantic memory into the existing Memory OS ingestion path while coordinating with `pi-fabric` structured capture |
 
 Memory failures must never break the Pi coding session.
 
@@ -57,7 +57,7 @@ Hermes/Icarus behavior is the compatibility reference, not something to blindly 
 | Ground Truth hierarchy | Append concise authority instruction to Pi system prompt |
 | Post-call/session capture | `agent_end` capture enqueue |
 | Redis/ARQ ingestion | ARQ-compatible `arq:job:<id>` payload plus `arq:queue` entry |
-| Qdrant semantic search | Direct Qdrant adapter using existing collection/vector conventions |
+| Qdrant semantic search | Direct Qdrant adapter using existing collection/vector conventions and `/points/query` where available |
 | Manual `/memory` command or memory tools | Not part of default `pi-memory-os` |
 
 The default Pi extension surface should stay hook-only. Manual diagnostics or operator controls belong in a later opt-in admin extension.
@@ -105,9 +105,9 @@ These are implementation contracts, not optional design ideas:
 | Contract | Requirement |
 |---|---|
 | Qdrant probe | Parse real Qdrant envelopes such as `{ result: { collections } }` |
-| Qdrant search | Parse `{ result: [...] }` and `{ result: { points: [...] } }` |
+| Qdrant search | Prefer `/points/query`; fall back to `/points/search`; parse `{ result: [...] }` and `{ result: { points: [...] } }` |
 | Qdrant payload | Preserve Memory OS fields such as `text`, `source`, `tags`, `created_at` |
-| Vector search | Use the configured Memory OS collection and named `dense` vector; original Memory OS also supports optional `sparse` BM25/RRF through `/points/query` |
+| Vector search | Use the configured Memory OS collection and named `dense` vector; original Memory OS also supports optional `sparse` BM25/RRF through `/points/query`, but Pi must reuse an existing sparse path/service rather than inventing a separate index |
 | Embeddings | Use the configured OpenAI-compatible local endpoint |
 | Embedding dimensions | Validate vectors against configured dimensions before querying Qdrant |
 | Redis/ARQ | Enqueue ARQ-compatible pickle job payloads under `arq:job:<id>` and add job id to `arq:queue` |
@@ -121,15 +121,18 @@ Retrieval should be surgical:
 - use the current user prompt as query
 - skip low-information prompts such as bare filenames and acknowledgements
 - limit result count
-- enforce a minimum score
+- enforce a minimum score where the source score scale makes sense
 - dedupe injected IDs within a Pi session
 - sanitize prompt-injection patterns and redact secrets before injection
 - label source/score/tags clearly
 - fail quietly
+- keep source budgets explicit so Fabric, Qdrant, session history, and facts cannot crowd each other out accidentally
 
 Memory noise is worse than missing memory.
 
-Phase 1 may use dense-only Qdrant search as the compatibility baseline. A later improvement should adapt the original Memory OS `/points/query` hybrid path with dense plus sparse/RRF when the local collection supports it.
+Current Qdrant retrieval prefers `/points/query` with the named dense vector and falls back to `/points/search`. The next hybrid step is sparse/BM25 only after identifying an existing local sparse embedding path from Memory OS.
+
+Session-start context should follow Icarus more closely: `pi-memory-os` should call `pi-fabric` brief/pending/recent APIs for Fabric operational context instead of re-reading markdown directly.
 
 ## Capture
 
@@ -198,17 +201,16 @@ The implementation is correct when:
 
 Near-term:
 
-- run live smoke tests against local Qdrant, embeddings, Redis, and ARQ worker
-- compare current payload fields against the original Memory OS extractor/indexer
-- add prompt-injection sanitization for retrieved memories
-- validate embedding vector dimensions before Qdrant search
-- evaluate adapting original `/points/query` hybrid search after dense-only smoke passes
-- add a worker-consumption smoke check, not just Redis enqueue verification
+- promote session-start Fabric brief/pending/recent context through `pi-fabric` APIs
+- define per-source retrieval budgets and score policy before adding more sources
 - document and implement coordination policy when mandatory `pi-fabric` and `pi-memory-os` both auto-capture
+- stabilize `pi-fabric` public exports so `pi-memory-os` does not import built internals
+- identify the original Memory OS sparse/BM25 path before adding sparse query branches
+- keep live smoke tests against local Qdrant, embeddings, Redis, ARQ worker, Fabric, and Pi lifecycle
 
 Later:
 
-- read-only Fabric summaries as an additional memory source
+- read-only Hermes session/fact sources as additional memory sources
 - shared low-level clients only after real duplication appears
 - optional `pi-memory-admin` for manual diagnostics
 - reuse local Memory OS extraction/scoring paths more deeply

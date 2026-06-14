@@ -1,4 +1,5 @@
 import type { MemoryHit, ProbeResult } from "../types.js";
+import type { SparseVector } from "./sparse-embedding-client.js";
 
 const DEFAULT_TIMEOUT_MS = 5000;
 
@@ -50,6 +51,20 @@ export async function probeQdrant(qdrantUrl: string, collection: string, timeout
   return { ok: true, statusCode: response.status, hasOurCollection, collections };
 }
 
+function mapQdrantHits(results: Record<string, unknown>[]): MemoryHit[] {
+  return results.map((r): MemoryHit => {
+    const payload = (r["payload"] ?? {}) as Record<string, unknown>;
+    return {
+      id: String(r["id"] ?? ""),
+      score: typeof r["score"] === "number" ? r["score"] : null,
+      text: extractMemoryText(payload),
+      source: typeof payload["source"] === "string" ? payload["source"] : null,
+      tags: Array.isArray(payload["tags"]) ? (payload["tags"] as string[]) : [],
+      createdAt: typeof payload["created_at"] === "string" ? payload["created_at"] : null,
+    };
+  });
+}
+
 export async function searchQdrant(
   qdrantUrl: string,
   collection: string,
@@ -76,16 +91,47 @@ export async function searchQdrant(
     throw new Error(`search HTTP ${response.status}: ${await response.text()}`);
   }
 
-  const results = extractSearchResults(await response.json());
-  return results.map((r): MemoryHit => {
-    const payload = (r["payload"] ?? {}) as Record<string, unknown>;
-    return {
-      id: String(r["id"] ?? ""),
-      score: typeof r["score"] === "number" ? r["score"] : null,
-      text: extractMemoryText(payload),
-      source: typeof payload["source"] === "string" ? payload["source"] : null,
-      tags: Array.isArray(payload["tags"]) ? (payload["tags"] as string[]) : [],
-      createdAt: typeof payload["created_at"] === "string" ? payload["created_at"] : null,
-    };
+  return mapQdrantHits(extractSearchResults(await response.json()));
+}
+
+export async function queryQdrant(
+  qdrantUrl: string,
+  collection: string,
+  vector: number[],
+  limit: number,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  sparseVector?: SparseVector | null,
+): Promise<MemoryHit[]> {
+  const url = `${qdrantUrl.replace(/\/+$/, "")}/collections/${collection}/points/query`;
+  const body = sparseVector
+    ? {
+        prefetch: [
+          { query: vector, using: "dense", limit: limit * 3 },
+          { query: sparseVector, using: "sparse", limit: limit * 3 },
+        ],
+        query: { fusion: "rrf" },
+        limit,
+        with_payload: true,
+        with_vector: false,
+      }
+    : {
+        query: vector,
+        using: "dense",
+        limit,
+        with_payload: true,
+        with_vector: false,
+      };
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(timeoutMs),
   });
+
+  if (!response.ok) {
+    return searchQdrant(qdrantUrl, collection, vector, limit, timeoutMs);
+  }
+
+  return mapQdrantHits(extractSearchResults(await response.json()));
 }
